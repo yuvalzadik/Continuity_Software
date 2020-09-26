@@ -22,26 +22,21 @@ import java.util.concurrent.ExecutionException;
 public class App {
 
     private static final String POST_API_URL = "http://jsonplaceholder.typicode.com/";
-    private static ObjectMapper mapper = new ObjectMapper(); // this object convert the json into java class
+    private static ObjectMapper mapper = new ObjectMapper(); //  convert the json into java class
 
-    // IOException -throws  if an I/O error occurs when sending or receiving
-    // InterruptedException - throws if the operation is interrupted
     //create a function which get a url parameter and create a http response
     public static HttpResponse<String> getHttp (String url) throws IOException, InterruptedException {
-        HttpClient client = HttpClient.newHttpClient(); //The http client
+        HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder() // Creating a http request
                 .GET()
                 .header("accept", "application/json")
                 .uri(URI.create(POST_API_URL + url))
                 .timeout(Duration.ofSeconds(2))
                 .build();
-        //System.out.println("Sending request to /" + url);
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString()); // send the request and get the response in string
-        int status = response.statusCode();
-
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        int status = response.statusCode(); //check status code
         if (status == 200)
             return response;
-
         else
             System.out.println ("THE CONNECTION IS FAILED  " + status) ;
             return response;
@@ -54,13 +49,11 @@ public class App {
     //create a function that returns the uncompleted tasks of a specific user
     public static UncompletedUser getUserUncompletedTasks (byte userid) throws IOException, InterruptedException {
 
-        HttpResponse<String> response_tasks = getHttp("todos?userId=" + userid + "&completed=false"); // sending http request for getting the uncompleted task for each user
-        List<Task> tasks = mapper.readValue(response_tasks.body(), new TypeReference<List<Task>>() {}); // creating a list which contains the response_tasks valu into a object from class Task
-
-
+        HttpResponse<String> response_tasks = getHttp("todos?userId=" + userid + "&completed=false");
+        List<Task> tasks = mapper.readValue(response_tasks.body(), new TypeReference<List<Task>>() {}); // creating a list which contains the response_tasks value
         UncompletedUser uncompleteduser = new UncompletedUser(); //creating a new object that contains userid with uncompleted tasks list
-        uncompleteduser.setUserId(userid); // add the userid from the for loop user into the object UncompletedUser
-        uncompleteduser.setTasks(tasks); // add the tasks list from http response tasks into the object UncompletedUser
+        uncompleteduser.setUserId(userid);
+        uncompleteduser.setTasks(tasks);
         return uncompleteduser;
     }
 
@@ -68,95 +61,85 @@ public class App {
     public static PrimaryUsersList usersUncompletedTasks () throws IOException, InterruptedException {
 
         PrimaryUsersList primaryuncomletedusers = new PrimaryUsersList();
-        List<UncompletedUser> listusers = new ArrayList<UncompletedUser>(); // creating a list named listusers which contains UncompletedUser type object
+        List<UncompletedUser> listusers = new ArrayList<UncompletedUser>();
+        HttpResponse<String> response_users = getHttp("users");
+        List<User> users = mapper.readValue(response_users.body(), new TypeReference<List<User>>() {});
 
-
-        HttpResponse<String> response_users = getHttp("users"); // calling the function getHttp with users url and return the response into response_users object.
-        List<User> users = mapper.readValue(response_users.body(), new TypeReference<List<User>>() {}); // creating a list and map the response_users jason and convert into a java class
-
-        for( User user : users){  //foreach user in users
+        for( User user : users){  // running on all the users and update it on the list of UncompletedUser users
             UncompletedUser uncompleteduser = getUserUncompletedTasks(user.getId());
-            listusers.add(uncompleteduser); // after the UncompletedUser object is done we add it to the list of UncompletedUser users
+            listusers.add(uncompleteduser);
         };
 
-        primaryuncomletedusers.setUsers(listusers);
+        primaryuncomletedusers.setUsers(listusers); // insert the list into a one object
         return primaryuncomletedusers;
-        
-
     }
 
     //create a function that returns all the comments of a specific post
     public static List<Comment> getComments (short postId) throws IOException, InterruptedException {
-        HttpResponse<String> response_comments = getHttp("comments?postId=" + postId); // sending http request for getting the comments list for a specific postId
-        List<Comment> comments = mapper.readValue(response_comments.body(), new TypeReference<List<Comment>>() {}); // creating a list which contains the response_comments value into a object from class Comment
+        HttpResponse<String> response_comments = getHttp("comments?postId=" + postId);
+        List<Comment> comments = mapper.readValue(response_comments.body(), new TypeReference<List<Comment>>() {});
         return comments;
     }
 
     //create a function that returns all the posts of a specific user
     public static List<Post> get_Posts (byte userId) throws IOException, InterruptedException {
-        HttpResponse<String> response_posts = getHttp("posts?userId=" + userId); // sending http request for getting the posts list for a specific userId
-        List<Post> posts = mapper.readValue(response_posts.body(), new TypeReference<List<Post>>() {}); // creating a list which contains the response_posts value into a object from class Post
+        HttpResponse<String> response_posts = getHttp("posts?userId=" + userId);
+        List<Post> posts = mapper.readValue(response_posts.body(), new TypeReference<List<Post>>() {});
         return posts;
     }
 
     //create a primary function that returns all emails per post per user.
     public static userPostReplierEmails getPostsReplierEmails () throws IOException, InterruptedException {
-        userPostReplierEmails userpostReplierEmails = new userPostReplierEmails(); // create a primary object
-        List<userPosts> listusers = new ArrayList<userPosts>(); // creating a list which contains a list of userPost objects
+        userPostReplierEmails userpostReplierEmails = new userPostReplierEmails();
+        List<userPosts> listusers = new ArrayList<userPosts>();
+        HttpResponse<String> response_users = getHttp("users");
+        List<User> users = mapper.readValue(response_users.body(), new TypeReference<List<User>>() {});
 
+        //running on all the users and creating each of them list of their posts
+        for( User user : users){
+            userPosts userposts = new userPosts();
+            List<Post> posts = get_Posts(user.getId());
+            List<PostEmails> postEmailslist = new ArrayList<PostEmails>();
 
-        HttpResponse<String> response_users = getHttp("users"); // calling the function getHttp with users url and return the response into response_users object.
-        List<User> users = mapper.readValue(response_users.body(), new TypeReference<List<User>>() {}); // creating a list and map the response_users jason and convert into a java class
-        //int i = 0;
-        for( User user : users){//foreach user in users
-            userPosts userposts = new userPosts(); // create a userpost object which contais a user id and post list 
-//            if (i == 3){
-//                break;
-//            }
-//            i++;
-            List<Post> posts = get_Posts(user.getId()); // get all posts of a specific user
-            List<PostEmails> postEmailslist = new ArrayList<PostEmails>(); // creating a list that contains post email object - post email object consists of post id and comment list
-            
-            for( Post post : posts) {  //foreach post in posts
+            //running on all the posts and checking each of them. if there are comments, update the post id and his comments on thr postEmail object.
+            for( Post post : posts) {
                 Thread.sleep(100);
-                List<Comment> comments = getComments((short) post.getId()); // create a list of all comments for a specific port
-                if (comments.isEmpty() == false) { // check if there is a comment on the post
-                    PostEmails postemails = new PostEmails(); // create a new email_list in type PostEmail per post (contains post id and email list)
-                    postemails.setEmails(comments); // add the comments - get only email 
-                    postemails.setPostid(post.getId()); // add the post id
-                    postEmailslist.add(postemails); /// insert the postemail object into the postEmailslist
+                List<Comment> comments = getComments((short) post.getId());
+                if (comments.isEmpty() == false) {
+                    PostEmails postemails = new PostEmails();
+                    postemails.setEmails(comments);
+                    postemails.setPostid(post.getId());
+                    postEmailslist.add(postemails);
                 }
             }
 
-            userposts.setPosts(postEmailslist); // insert list of posts ot the user
-            userposts.setUserId(user.getId()); // add id to the user
+            userposts.setPosts(postEmailslist);
+            userposts.setUserId(user.getId());
 
-            listusers.add(userposts);// after the user object is done we add it to the list of users
-            //System.out.println(listusers);
-
+            listusers.add(userposts);// after the userpost object is done we add it to the primary list of users
         };
-        userpostReplierEmails.setUsersPosts(listusers); //inserting the list of uncompleted users to the final collection we  return to the user
-//        System.out.println(primaryuncomletedusers);
+        userpostReplierEmails.setUsersPosts(listusers);
         return userpostReplierEmails;
     }
 
 
     //create a function that returns all albums of a specific user that contains more photos than a given threshold
     public static AlbumsPerUser getAlbums (byte userId, short photo_input) throws IOException, InterruptedException {
-        HttpResponse<String> response_comments = getHttp("albums?userId=" + userId); // sending http request for getting the albums list for a specific userId
-        List<albums> Albums = mapper.readValue(response_comments.body(), new TypeReference<List<albums>>() {}); // creating a list which contains the response_comments value into a object from class Comment
+        HttpResponse<String> response_comments = getHttp("albums?userId=" + userId);
+        List<albums> Albums = mapper.readValue(response_comments.body(), new TypeReference<List<albums>>() {});
         List<albums> new_album = new ArrayList<albums>();
         AlbumsPerUser albumsPerUser1 = new AlbumsPerUser();
-        List<AlbumsPerUser> albumsPerUsers = new ArrayList<AlbumsPerUser>(); // creating a list which contains albumsPerUsers type object
+        List<AlbumsPerUser> albumsPerUsers = new ArrayList<AlbumsPerUser>();
 
-        for( albums album : Albums){  //foreach album in albums
-            List<photos> photos = getPhotos(album.getId()); // getting the photos of the album
+        //running on all the albums and check if there are more photos then the photo threshold input. if its above the threshold , update the album on the list.
+        for( albums album : Albums){
+            List<photos> photos = getPhotos(album.getId());
 
-            if (photos.size() >= photo_input) { // checks if there is more photos then th photo treshold input
+            if (photos.size() >= photo_input) {
             new_album.add(album);
             }
-            albumsPerUser1.setUserId(userId); //update the useId in the albumperuser object
-            albumsPerUser1.setAlbums(new_album); //update the new album list in the albumperuser object
+            albumsPerUser1.setUserId(userId);
+            albumsPerUser1.setAlbums(new_album);
 
         };
         return albumsPerUser1;
@@ -165,39 +148,41 @@ public class App {
     //create a function that returns the photos of a specific album
     public static List<photos> getPhotos (byte albumId) throws IOException, InterruptedException {
 
-        HttpResponse<String> response_photos = getHttp("photos?albumId=" + albumId); // sending http request for getting the albums list for a specific userId
-        List<photos> photos = mapper.readValue(response_photos.body(), new TypeReference<List<photos>>() {}); // creating a list which contains the photos value
+        HttpResponse<String> response_photos = getHttp("photos?albumId=" + albumId);
+        List<photos> photos = mapper.readValue(response_photos.body(), new TypeReference<List<photos>>() {});
         return photos;
     }
 
 
     public static void main (String[]args ) throws IOException, InterruptedException {
 
-        //PrimaryUsersList primary = usersUncompletedTasks(); //calling the function to get the collection of users with uncompleted tasks
+        //calling the function to get the collection of users with uncompleted tasks
 
+        //PrimaryUsersList primary = usersUncompletedTasks();
         //System.out.println(primary);
 
-        /*UncompletedUser user = getUserUncompletedTasks((byte) 2); //calling the function to get the collection of  a specific user - id 1 with uncompleted tasks
+        //calling the function to get the collection of  a specific user - id 1 with uncompleted tasks
+
+        /*UncompletedUser user = getUserUncompletedTasks((byte) 2);
         System.out.println(user);*/
 
-        //covert into json
-        /*ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
-        String json = ow.writeValueAsString(primary);
-        System.out.println(json);
-*/
+
+        //calling the function that returns the summary for each user, the email of each replier (in a comment) per each post that the user has posted and covert the output into jason
+
         /*userPostReplierEmails userpostemials = getPostsReplierEmails();
         ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
         String json = ow.writeValueAsString(userpostemials);
         System.out.println(json);*/
 
-        Scanner myObj = new Scanner(System.in);
-        System.out.println("Enter the minimum number of photos: ");
-        short photo_input = myObj.nextShort();
+        // calling the function that returns all albums of a specific user that contains more photos than a given threshold. convert into jason output
 
+        /*Scanner myObj = new Scanner(System.in);
+        System.out.println("Enter the minimum number of photos (threshold): ");
+        short photo_input = myObj.nextShort();
         AlbumsPerUser albumsPerUser = getAlbums((byte) 2, photo_input);
         ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
         String json = ow.writeValueAsString(albumsPerUser);
-        System.out.println(json);
+        System.out.println(json);*/
 
 
 
